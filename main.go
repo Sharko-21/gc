@@ -220,28 +220,9 @@ func thirdTest() {
 	freeVM(&vm)
 }
 
-func fourthTest() {
-	fmt.Println("4: Cycles.")
-	vm := createVM()
-
-	pushInt(&vm, 1)
-	pushInt(&vm, 2)
-	a := pushPair(&vm)
-	pushInt(&vm, 3)
-	pushInt(&vm, 4)
-	b := pushPair(&vm)
-
-	a.tailValue = b
-	b.tailValue = a
-
-	gc(&vm)
-	freeVM(&vm)
-}
-
 func main() {
 	debug.SetGCPercent(-1)
 	firstTest()
 	secondTest()
 	thirdTest()
-	fourthTest()
 }
