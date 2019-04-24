@@ -8,7 +8,7 @@ import (
 
 const (
 	STACK_MAX_SIZE int = 256
-	ICGT int = 8
+	ICGT           int = 8
 )
 
 type VMObjInterface interface{}
@@ -26,20 +26,20 @@ type IntObj struct {
 	next VMObjInterface
 
 	isMarked bool
-	value int
+	value    int
 }
 
 type VM struct {
-	stack [STACK_MAX_SIZE]VMObjInterface
+	stack     [STACK_MAX_SIZE]VMObjInterface
 	stackSize int
 
-	numOfObjects int
+	numOfObjects    int
 	maxNumofObjects int
 
 	beginOfList VMObjInterface
 }
 
-func createVM() VM{
+func createVM() VM {
 	vm := new(VM)
 	vm.stackSize = 0
 	vm.numOfObjects = 0
@@ -49,7 +49,7 @@ func createVM() VM{
 	return *vm
 }
 
-func markAll(vm *VM)  {
+func markAll(vm *VM) {
 	for i := 0; i < vm.stackSize; i++ {
 		mark(vm.stack[i])
 	}
@@ -81,8 +81,8 @@ func markSweep(vm *VM) {
 				//here must be free() but we don't have it in go :D
 				vm.numOfObjects--
 			} else {
-					(*obj).(*IntObj).isMarked = false
-					obj = &(*obj).(*IntObj).next
+				(*obj).(*IntObj).isMarked = false
+				obj = &(*obj).(*IntObj).next
 			}
 		} else if objType == reflect.TypeOf(&CompositeObj{}) {
 			if (*obj).(*CompositeObj).isMarked == false {
@@ -107,12 +107,12 @@ func push(vm *VM, obj VMObjInterface) {
 	vm.stackSize++
 }
 
-func pop(vm *VM) VMObjInterface{
+func pop(vm *VM) VMObjInterface {
 	vm.stackSize--
 	return vm.stack[vm.stackSize]
 }
 
-func newObjet(vm *VM, objType reflect.Type) VMObjInterface{
+func newObjet(vm *VM, objType reflect.Type) VMObjInterface {
 	if vm.numOfObjects == vm.maxNumofObjects {
 		gc(vm)
 	}
@@ -136,18 +136,18 @@ func newObjet(vm *VM, objType reflect.Type) VMObjInterface{
 
 func pushInt(vm *VM, intValue int) {
 	obj := newObjet(vm, reflect.TypeOf(&IntObj{}))
-	obj.(* IntObj).value = intValue
+	obj.(*IntObj).value = intValue
 
 	push(vm, obj)
 }
 
-func pushPair(vm *VM) *CompositeObj{
+func pushPair(vm *VM) *CompositeObj {
 	obj := newObjet(vm, reflect.TypeOf(&CompositeObj{}))
-	obj.(* CompositeObj).headValue = pop(vm)
-	obj.(* CompositeObj).tailValue = pop(vm)
+	obj.(*CompositeObj).headValue = pop(vm)
+	obj.(*CompositeObj).tailValue = pop(vm)
 
 	push(vm, obj)
-	return obj.(* CompositeObj)
+	return obj.(*CompositeObj)
 }
 
 func gc(vm *VM) {
@@ -157,7 +157,7 @@ func gc(vm *VM) {
 	markSweep(vm)
 
 	vm.maxNumofObjects = vm.numOfObjects * 2
-	fmt.Printf("Collected %d objects, left %d\n", numOfObjects - vm.numOfObjects, vm.numOfObjects)
+	fmt.Printf("Collected %d objects, left %d\n", numOfObjects-vm.numOfObjects, vm.numOfObjects)
 }
 
 func freeVM(vm *VM) {
@@ -175,7 +175,7 @@ func firstTest() {
 	freeVM(&vm)
 }
 
-func secondTest()  {
+func secondTest() {
 	fmt.Println("2: Unreached objects are collected.")
 	vm := createVM()
 	pushInt(&vm, 1)
@@ -196,15 +196,15 @@ func printList(vm *VM) {
 		objType := reflect.TypeOf(*beginOfList)
 		if objType == reflect.TypeOf(&IntObj{}) {
 			fmt.Println("heh", *beginOfList)
-			beginOfList = &(*beginOfList).(* IntObj).next
+			beginOfList = &(*beginOfList).(*IntObj).next
 		} else if objType == reflect.TypeOf(&CompositeObj{}) {
 			fmt.Println("heh2", *beginOfList)
-			beginOfList = &(*beginOfList).(* CompositeObj).next
+			beginOfList = &(*beginOfList).(*CompositeObj).next
 		}
 	}
 }
 
-func thirdTest()  {
+func thirdTest() {
 	fmt.Println("3: Reach the nested objects.")
 	vm := createVM()
 	pushInt(&vm, 1)
@@ -215,7 +215,6 @@ func thirdTest()  {
 
 	pushPair(&vm)
 	pushPair(&vm)
-
 
 	gc(&vm)
 	freeVM(&vm)
@@ -239,22 +238,10 @@ func fourthTest() {
 	freeVM(&vm)
 }
 
-func main()  {
+func main() {
 	debug.SetGCPercent(-1)
 	firstTest()
 	secondTest()
 	thirdTest()
 	fourthTest()
 }
-
-/*
-	primeObject1 := new(IntObj)
-	primeObject1.value = 10
-
-	compositeObj1 := new(CompositeObj)
-	compositeObj2 := new(CompositeObj)
-	compositeObj1.headValue = compositeObj2
-	compositeObj1.tailValue = primeObject1
-	compositeObj1.tailValue.(* IntObj).value = 12
-	fmt.Println(compositeObj1.tailValue.(* IntObj).value)
-*/
