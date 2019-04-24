@@ -112,7 +112,7 @@ func pop(vm *VM) VMObjInterface {
 	return vm.stack[vm.stackSize]
 }
 
-func newObjet(vm *VM, objType reflect.Type) VMObjInterface {
+func newObject(vm *VM, objType reflect.Type) VMObjInterface {
 	if vm.numOfObjects == vm.maxNumofObjects {
 		gc(vm)
 	}
@@ -135,14 +135,14 @@ func newObjet(vm *VM, objType reflect.Type) VMObjInterface {
 }
 
 func pushInt(vm *VM, intValue int) {
-	obj := newObjet(vm, reflect.TypeOf(&IntObj{}))
+	obj := newObject(vm, reflect.TypeOf(&IntObj{}))
 	obj.(*IntObj).value = intValue
 
 	push(vm, obj)
 }
 
 func pushPair(vm *VM) *CompositeObj {
-	obj := newObjet(vm, reflect.TypeOf(&CompositeObj{}))
+	obj := newObject(vm, reflect.TypeOf(&CompositeObj{}))
 	obj.(*CompositeObj).headValue = pop(vm)
 	obj.(*CompositeObj).tailValue = pop(vm)
 
@@ -163,6 +163,21 @@ func gc(vm *VM) {
 func freeVM(vm *VM) {
 	vm.stackSize = 0
 	gc(vm)
+}
+
+func printList(vm *VM) {
+	beginOfList := &vm.beginOfList
+
+	for *beginOfList != nil {
+		objType := reflect.TypeOf(*beginOfList)
+		if objType == reflect.TypeOf(&IntObj{}) {
+			fmt.Println("heh", *beginOfList)
+			beginOfList = &(*beginOfList).(*IntObj).next
+		} else if objType == reflect.TypeOf(&CompositeObj{}) {
+			fmt.Println("heh2", *beginOfList)
+			beginOfList = &(*beginOfList).(*CompositeObj).next
+		}
+	}
 }
 
 func firstTest() {
@@ -187,21 +202,6 @@ func secondTest() {
 
 	gc(&vm)
 	freeVM(&vm)
-}
-
-func printList(vm *VM) {
-	beginOfList := &vm.beginOfList
-
-	for *beginOfList != nil {
-		objType := reflect.TypeOf(*beginOfList)
-		if objType == reflect.TypeOf(&IntObj{}) {
-			fmt.Println("heh", *beginOfList)
-			beginOfList = &(*beginOfList).(*IntObj).next
-		} else if objType == reflect.TypeOf(&CompositeObj{}) {
-			fmt.Println("heh2", *beginOfList)
-			beginOfList = &(*beginOfList).(*CompositeObj).next
-		}
-	}
 }
 
 func thirdTest() {
