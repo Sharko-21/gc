@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"reflect"
 	"runtime/debug"
 )
 
@@ -56,11 +55,12 @@ func markAll(vm *VM) {
 }
 
 func mark(objInterface VMObjInterface) {
-	objType := reflect.TypeOf(objInterface)
-
-	if objType == reflect.TypeOf(&IntObj{}) {
+	if _, ok := objInterface.(*IntObj); ok {
 		objInterface.(*IntObj).isMarked = true
-	} else if objType == reflect.TypeOf(&CompositeObj{}) {
+	} else if _, ok := objInterface.(*CompositeObj); ok {
+		if objInterface.(*CompositeObj).isMarked == true {
+			return
+		}
 		objInterface.(*CompositeObj).isMarked = true
 
 		mark(objInterface.(*CompositeObj).headValue)
@@ -72,8 +72,7 @@ func markSweep(vm *VM) {
 	obj := &vm.beginOfList
 
 	for *obj != nil {
-		objType := reflect.TypeOf(*(obj))
-		if objType == reflect.TypeOf(&IntObj{}) {
+		if _, ok := (*obj).(*IntObj); ok {
 			if (*obj).(*IntObj).isMarked == false {
 				unreached := obj
 				obj = &(*unreached).(*IntObj).next
@@ -84,7 +83,7 @@ func markSweep(vm *VM) {
 				(*obj).(*IntObj).isMarked = false
 				obj = &(*obj).(*IntObj).next
 			}
-		} else if objType == reflect.TypeOf(&CompositeObj{}) {
+		} else if _, ok := (*obj).(*CompositeObj); ok {
 			if (*obj).(*CompositeObj).isMarked == false {
 				unreached := obj
 				obj = &(*unreached).(*CompositeObj).next
@@ -99,9 +98,9 @@ func markSweep(vm *VM) {
 }
 
 func push(vm *VM, obj VMObjInterface) {
-	if reflect.TypeOf(obj) == reflect.TypeOf(&IntObj{}) {
+	if _, ok := obj.(*IntObj); ok {
 		vm.stack[vm.stackSize] = obj.(*IntObj)
-	} else if reflect.TypeOf(obj) == reflect.TypeOf(&CompositeObj{}) {
+	} else if _, ok := obj.(*CompositeObj); ok {
 		vm.stack[vm.stackSize] = obj.(*CompositeObj)
 	}
 	vm.stackSize++
@@ -109,40 +108,38 @@ func push(vm *VM, obj VMObjInterface) {
 
 func pop(vm *VM) VMObjInterface {
 	vm.stackSize--
-	return vm.stack[vm.stackSize]
+	stackElem := vm.stack[vm.stackSize]
+	vm.stack[vm.stackSize] = nil
+	return stackElem
 }
 
-func newObject(vm *VM, objType reflect.Type) VMObjInterface {
+func newObject(vm *VM, obj VMObjInterface) VMObjInterface {
 	if vm.numOfObjects == vm.maxNumofObjects {
 		gc(vm)
 	}
 
-	if objType == reflect.TypeOf(&IntObj{}) {
-		obj := &IntObj{}
-		obj.next = vm.beginOfList
-		vm.beginOfList = obj
-		obj.isMarked = false
-		vm.numOfObjects++
-		return obj
-	} else {
-		obj := &CompositeObj{}
-		obj.next = vm.beginOfList
-		vm.beginOfList = obj
-		obj.isMarked = false
-		vm.numOfObjects++
-		return obj
+	if _, ok := obj.(*IntObj); ok {
+		obj.(*IntObj).next = vm.beginOfList
+		obj.(*IntObj).isMarked = false
+	} else if _, ok := obj.(*CompositeObj); ok {
+		obj.(*CompositeObj).next = vm.beginOfList
+		obj.(*CompositeObj).isMarked = false
 	}
+
+	vm.beginOfList = obj
+	vm.numOfObjects++
+	return obj
 }
 
 func pushInt(vm *VM, intValue int) {
-	obj := newObject(vm, reflect.TypeOf(&IntObj{}))
+	obj := newObject(vm, &IntObj{})
 	obj.(*IntObj).value = intValue
 
 	push(vm, obj)
 }
 
 func pushPair(vm *VM) *CompositeObj {
-	obj := newObject(vm, reflect.TypeOf(&CompositeObj{}))
+	obj := newObject(vm, &CompositeObj{})
 	obj.(*CompositeObj).headValue = pop(vm)
 	obj.(*CompositeObj).tailValue = pop(vm)
 
@@ -169,11 +166,10 @@ func printList(vm *VM) {
 	beginOfList := &vm.beginOfList
 
 	for *beginOfList != nil {
-		objType := reflect.TypeOf(*beginOfList)
-		if objType == reflect.TypeOf(&IntObj{}) {
+		if _, ok := (*beginOfList).(*IntObj); ok {
 			fmt.Println("heh", *beginOfList)
 			beginOfList = &(*beginOfList).(*IntObj).next
-		} else if objType == reflect.TypeOf(&CompositeObj{}) {
+		} else if _, ok := (*beginOfList).(*CompositeObj); ok {
 			fmt.Println("heh2", *beginOfList)
 			beginOfList = &(*beginOfList).(*CompositeObj).next
 		}
