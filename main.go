@@ -13,19 +13,19 @@ const (
 type VMObjInterface interface{}
 
 type CompositeObj struct {
-	next VMObjInterface
+	Next VMObjInterface
 
-	isMarked bool
+	IsMarked bool
 
-	headValue VMObjInterface
-	tailValue VMObjInterface
+	HeadValue VMObjInterface
+	TailValue VMObjInterface
 }
 
 type IntObj struct {
-	next VMObjInterface
+	Next VMObjInterface
 
-	isMarked bool
-	value    int
+	IsMarked bool
+	Value    int
 }
 
 type VM struct {
@@ -56,15 +56,15 @@ func markAll(vm *VM) {
 
 func mark(objInterface VMObjInterface) {
 	if _, ok := objInterface.(*IntObj); ok {
-		objInterface.(*IntObj).isMarked = true
+		objInterface.(*IntObj).IsMarked = true
 	} else if _, ok := objInterface.(*CompositeObj); ok {
-		if objInterface.(*CompositeObj).isMarked == true {
+		if objInterface.(*CompositeObj).IsMarked == true {
 			return
 		}
-		objInterface.(*CompositeObj).isMarked = true
+		objInterface.(*CompositeObj).IsMarked = true
 
-		mark(objInterface.(*CompositeObj).headValue)
-		mark(objInterface.(*CompositeObj).tailValue)
+		mark(objInterface.(*CompositeObj).HeadValue)
+		mark(objInterface.(*CompositeObj).TailValue)
 	}
 }
 
@@ -73,25 +73,25 @@ func markSweep(vm *VM) {
 
 	for *obj != nil {
 		if _, ok := (*obj).(*IntObj); ok {
-			if (*obj).(*IntObj).isMarked == false {
+			if (*obj).(*IntObj).IsMarked == false {
 				unreached := obj
-				obj = &(*unreached).(*IntObj).next
+				obj = &(*unreached).(*IntObj).Next
 				*unreached = nil
 				//here must be free() but we don't have it in go :D
 				vm.numOfObjects--
 			} else {
-				(*obj).(*IntObj).isMarked = false
-				obj = &(*obj).(*IntObj).next
+				(*obj).(*IntObj).IsMarked = false
+				obj = &(*obj).(*IntObj).Next
 			}
 		} else if _, ok := (*obj).(*CompositeObj); ok {
-			if (*obj).(*CompositeObj).isMarked == false {
+			if (*obj).(*CompositeObj).IsMarked == false {
 				unreached := obj
-				obj = &(*unreached).(*CompositeObj).next
+				obj = &(*unreached).(*CompositeObj).Next
 				*unreached = nil
 				vm.numOfObjects--
 			} else {
-				(*obj).(*CompositeObj).isMarked = false
-				obj = &(*obj).(*CompositeObj).next
+				(*obj).(*CompositeObj).IsMarked = false
+				obj = &(*obj).(*CompositeObj).Next
 			}
 		}
 	}
@@ -119,11 +119,11 @@ func newObject(vm *VM, obj VMObjInterface) VMObjInterface {
 	}
 
 	if _, ok := obj.(*IntObj); ok {
-		obj.(*IntObj).next = vm.beginOfList
-		obj.(*IntObj).isMarked = false
+		obj.(*IntObj).Next = vm.beginOfList
+		obj.(*IntObj).IsMarked = false
 	} else if _, ok := obj.(*CompositeObj); ok {
-		obj.(*CompositeObj).next = vm.beginOfList
-		obj.(*CompositeObj).isMarked = false
+		obj.(*CompositeObj).Next = vm.beginOfList
+		obj.(*CompositeObj).IsMarked = false
 	}
 
 	vm.beginOfList = obj
@@ -133,15 +133,15 @@ func newObject(vm *VM, obj VMObjInterface) VMObjInterface {
 
 func pushInt(vm *VM, intValue int) {
 	obj := newObject(vm, &IntObj{})
-	obj.(*IntObj).value = intValue
+	obj.(*IntObj).Value = intValue
 
 	push(vm, obj)
 }
 
 func pushPair(vm *VM) *CompositeObj {
 	obj := newObject(vm, &CompositeObj{})
-	obj.(*CompositeObj).headValue = pop(vm)
-	obj.(*CompositeObj).tailValue = pop(vm)
+	obj.(*CompositeObj).HeadValue = pop(vm)
+	obj.(*CompositeObj).TailValue = pop(vm)
 
 	push(vm, obj)
 	return obj.(*CompositeObj)
@@ -168,10 +168,10 @@ func printList(vm *VM) {
 	for *beginOfList != nil {
 		if _, ok := (*beginOfList).(*IntObj); ok {
 			fmt.Println("heh", *beginOfList)
-			beginOfList = &(*beginOfList).(*IntObj).next
+			beginOfList = &(*beginOfList).(*IntObj).Next
 		} else if _, ok := (*beginOfList).(*CompositeObj); ok {
 			fmt.Println("heh2", *beginOfList)
-			beginOfList = &(*beginOfList).(*CompositeObj).next
+			beginOfList = &(*beginOfList).(*CompositeObj).Next
 		}
 	}
 }
